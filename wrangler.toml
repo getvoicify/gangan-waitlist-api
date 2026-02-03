@@ -1,11 +1,11 @@
 name = "gangan-waitlist-api"
 main = "src/index.ts"
-compatibility_date = "2024-01-01"
+compatibility_date = "2026-02-03"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "gangan-waitlist"
-database_id = "placeholder-will-update-after-create"
+database_id = "e815fe56-d740-4f27-b2ea-eae5ff6b152b"
 
 [vars]
 ALLOWED_ORIGIN = "https://gangan.app"
