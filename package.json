@@ -1,0 +1,29 @@
+{
+  "name": "gangan-waitlist-api",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker API for Gangan waitlist",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "db:create": "wrangler d1 create gangan-waitlist",
+    "db:migrate": "wrangler d1 execute gangan-waitlist --file=./migrations/0001_init.sql",
+    "db:migrate:local": "wrangler d1 execute gangan-waitlist --local --file=./migrations/0001_init.sql"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getvoicify/gangan-waitlist-api.git"
+  },
+  "keywords": ["cloudflare", "workers", "waitlist", "gangan"],
+  "author": "GetVoicify",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "*",
+    "@cloudflare/workers-types": "*",
+    "typescript": "*",
+    "vitest": "*",
+    "wrangler": "*"
+  }
+}
