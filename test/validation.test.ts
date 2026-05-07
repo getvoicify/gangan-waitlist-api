@@ -84,4 +84,66 @@ describe('validateWaitlistRequest', () => {
     expect(result.valid).toBe(false);
     expect(result.errors.length).toBeGreaterThan(1);
   });
+
+  it('should accept valid optional UTM fields', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      userType: 'fan',
+      utm_source: 'instagram',
+      utm_medium: 'paid',
+      utm_campaign: 'ramp',
+      utm_content: 'video-01',
+      utm_term: 'afrobeats',
+      country: 'NG',
+      referrer: 'https://instagram.com',
+      landed_at: '2026-05-07T12:00:00.000Z',
+    });
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('should accept bare payload without optional fields (no regression)', () => {
+    const result = validateWaitlistRequest({ email: 'bare@example.com', userType: 'artist' });
+    expect(result.valid).toBe(true);
+  });
+
+  it('should reject utm_source over 256 chars', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      userType: 'fan',
+      utm_source: 'a'.repeat(257),
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('utm_source must be 256 characters or fewer');
+  });
+
+  it('should reject referrer over 1024 chars', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      userType: 'fan',
+      referrer: 'https://example.com/' + 'a'.repeat(1010),
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('referrer must be 1024 characters or fewer');
+  });
+
+  it('should reject invalid country code', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      userType: 'fan',
+      country: 'nigeria',
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('country must be a 2-letter ISO country code (A-Z)');
+  });
+
+  it('should reject malformed landed_at', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      userType: 'fan',
+      landed_at: '2026-05-07',
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('landed_at must be an ISO-8601 UTC timestamp');
+  });
 });
