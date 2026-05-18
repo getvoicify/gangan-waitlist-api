@@ -9,3 +9,8 @@ database_id = "e815fe56-d740-4f27-b2ea-eae5ff6b152b"
 
 [vars]
 ALLOWED_ORIGIN = "https://gangan.app"
+RESEND_FROM = "GanGan <waitlist@gangan.app>"
+RESEND_ARTIST_AUDIENCE_ID = "gangan-artist-waitlist-v1"
+RESEND_FAN_AUDIENCE_ID = "gangan-fan-waitlist-v1"
+
+# RESEND_API_KEY must be set via: wrangler secret put RESEND_API_KEY
