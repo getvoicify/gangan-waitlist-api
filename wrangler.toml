@@ -7,5 +7,9 @@ binding = "DB"
 database_name = "gangan-waitlist"
 database_id = "e815fe56-d740-4f27-b2ea-eae5ff6b152b"
 
+[[send_email]]
+name = "EMAIL"
+remote = true
+
 [vars]
 ALLOWED_ORIGIN = "https://gangan.app"

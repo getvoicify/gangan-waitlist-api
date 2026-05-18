@@ -1,5 +1,6 @@
-import type { WaitlistRequest, ApiResponse } from '../types';
+import type { WaitlistRequest, ApiResponse, Env } from '../types';
 import { validateWaitlistRequest } from '../lib/validation';
+import { sendWaitlistConfirmation } from '../lib/email';
 
 /**
  * Hash an IP address for privacy-friendly storage
@@ -29,7 +30,7 @@ function jsonResponse(body: ApiResponse, status: number): Response {
  */
 export async function handleWaitlistPost(
   request: WaitlistRequest,
-  db: D1Database,
+  env: Env,
   clientIp: string | null
 ): Promise<Response> {
   // Validate request
@@ -46,9 +47,13 @@ export async function handleWaitlistPost(
   const ipHash = clientIp ? await hashIp(clientIp) : null;
 
   try {
-    await db.prepare(
+    await env.DB.prepare(
       'INSERT INTO waitlist (email, user_type, ip_hash) VALUES (?, ?, ?)'
     ).bind(email, userType, ipHash).run();
+
+    sendWaitlistConfirmation(env, email).catch((err) => {
+      console.error('Waitlist confirmation email failed:', (err as Error).message);
+    });
 
     return jsonResponse({
       success: true,

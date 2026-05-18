@@ -1,5 +1,6 @@
 export interface Env {
   DB: D1Database;
+  EMAIL: SendEmail;
   ALLOWED_ORIGIN: string;
 }
 
