@@ -1,5 +1,6 @@
-import type { WaitlistRequest, ApiResponse } from '../types';
-import { validateWaitlistRequest } from '../lib/validation';
+import type { WaitlistRequest, ApiResponse, Env } from '../types';
+import { validateWaitlistRequest, resolveAudience } from '../lib/validation';
+import { sendWaitlistConfirmation } from '../lib/resend';
 
 /**
  * Hash an IP address for privacy-friendly storage
@@ -10,6 +11,16 @@ async function hashIp(ip: string): Promise<string> {
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+}
+
+function buildSource(utmSource?: string, utmCampaign?: string): string {
+  if (utmSource && utmCampaign) {
+    return `${utmSource} / ${utmCampaign}`;
+  }
+  if (utmSource) {
+    return utmSource;
+  }
+  return 'organic';
 }
 
 /**
@@ -29,10 +40,9 @@ function jsonResponse(body: ApiResponse, status: number): Response {
  */
 export async function handleWaitlistPost(
   request: WaitlistRequest,
-  db: D1Database,
+  env: Env,
   clientIp: string | null
 ): Promise<Response> {
-  // Validate request
   const validation = validateWaitlistRequest(request);
   if (!validation.valid) {
     return jsonResponse({
@@ -42,36 +52,46 @@ export async function handleWaitlistPost(
   }
 
   const email = request.email.trim().toLowerCase();
-  const userType = request.userType;
+  const audience = resolveAudience(request)!;
   const ipHash = clientIp ? await hashIp(clientIp) : null;
+  const source = buildSource(request.utm_source, request.utm_campaign);
+  const variant = request.variant || null;
+  const utmSource = request.utm_source || null;
+  const utmMedium = request.utm_medium || null;
+  const utmCampaign = request.utm_campaign || null;
+  const utmContent = request.utm_content || null;
+  const utmTerm = request.utm_term || null;
 
   try {
-    await db.prepare(
-      'INSERT INTO waitlist (email, user_type, ip_hash) VALUES (?, ?, ?)'
-    ).bind(email, userType, ipHash).run();
+    await env.DB.prepare(
+      `INSERT INTO waitlist (email, user_type, ip_hash, source, variant, utm_source, utm_medium, utm_campaign, utm_content, utm_term)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(email, audience, ipHash, source, variant, utmSource, utmMedium, utmCampaign, utmContent, utmTerm).run();
+
+    sendWaitlistConfirmation(env, email, audience).catch(err => {
+      console.error('Resend confirmation failed:', err instanceof Error ? err.message : String(err));
+    });
 
     return jsonResponse({
       success: true,
-      message: 'Welcome to the waitlist! We\'ll be in touch soon.',
+      message: "You're on the list. We'll email you ahead of the soft-launch on 2026-05-25.",
     }, 201);
 
   } catch (err) {
     const error = err as Error;
-    
-    // Handle duplicate email (idempotent response)
+
     if (error.message.includes('UNIQUE constraint failed')) {
       return jsonResponse({
         success: true,
-        message: 'You\'re already on the waitlist! We\'ll be in touch soon.',
+        message: "You're already on the list. We'll be in touch.",
       }, 200);
     }
 
-    // Log unexpected errors (in production, use proper logging)
     console.error('Waitlist error:', error.message);
 
     return jsonResponse({
       success: false,
-      message: 'Something went wrong. Please try again later.',
+      message: 'Something on our end. Try again in a minute.',
     }, 500);
   }
 }
