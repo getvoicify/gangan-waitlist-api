@@ -1,5 +1,6 @@
 import type { Env, WaitlistRequest, ApiResponse } from './types';
 import { handleWaitlistPost } from './handlers/waitlist';
+import { checkRateLimit } from './lib/rate-limit';
 
 /**
  * Create a JSON response with CORS headers
@@ -59,10 +60,18 @@ export default {
 
     // Route: POST /waitlist
     if (url.pathname === '/waitlist' && request.method === 'POST') {
+      const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+
+      if (!checkRateLimit(clientIp)) {
+        return corsResponse({
+          success: false,
+          message: 'Slow down for a moment, then try again.',
+        }, 429, allowedOrigin);
+      }
+
       try {
         const body = await request.json() as WaitlistRequest;
-        const clientIp = request.headers.get('CF-Connecting-IP');
-        const response = await handleWaitlistPost(body, env.DB, clientIp);
+        const response = await handleWaitlistPost(body, env, clientIp);
         return addCorsHeaders(response, allowedOrigin);
       } catch {
         return corsResponse({
