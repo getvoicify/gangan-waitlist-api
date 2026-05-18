@@ -62,7 +62,7 @@ export default {
       try {
         const body = await request.json() as WaitlistRequest;
         const clientIp = request.headers.get('CF-Connecting-IP');
-        const response = await handleWaitlistPost(body, env.DB, clientIp);
+        const response = await handleWaitlistPost(body, env, clientIp);
         return addCorsHeaders(response, allowedOrigin);
       } catch {
         return corsResponse({
