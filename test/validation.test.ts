@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateEmail, validateWaitlistRequest } from '../src/lib/validation';
+import { validateEmail, validateWaitlistRequest, resolveAudience } from '../src/lib/validation';
 
 describe('validateEmail', () => {
   it('should accept valid email addresses', () => {
@@ -22,28 +22,121 @@ describe('validateEmail', () => {
   });
 });
 
+describe('resolveAudience', () => {
+  it('should return audience when provided', () => {
+    expect(resolveAudience({ email: 'test@test.com', audience: 'artist' })).toBe('artist');
+    expect(resolveAudience({ email: 'test@test.com', audience: 'fan' })).toBe('fan');
+  });
+
+  it('should fall back to userType', () => {
+    expect(resolveAudience({ email: 'test@test.com', userType: 'fan' })).toBe('fan');
+    expect(resolveAudience({ email: 'test@test.com', userType: 'artist' })).toBe('artist');
+  });
+
+  it('should prefer audience over userType when both provided', () => {
+    expect(resolveAudience({ email: 'test@test.com', audience: 'fan', userType: 'artist' })).toBe('fan');
+    expect(resolveAudience({ email: 'test@test.com', audience: 'artist', userType: 'fan' })).toBe('artist');
+  });
+
+  it('should return null when neither provided', () => {
+    expect(resolveAudience({ email: 'test@test.com' })).toBeNull();
+  });
+
+  it('should return null for invalid values', () => {
+    expect(resolveAudience({ email: 'test@test.com', audience: 'invalid' as 'artist' })).toBeNull();
+    expect(resolveAudience({ email: 'test@test.com', userType: 'listener' as 'artist' })).toBeNull();
+  });
+});
+
 describe('validateWaitlistRequest', () => {
-  it('should accept valid requests', () => {
+  it('should accept valid request with audience', () => {
     const result = validateWaitlistRequest({
       email: 'artist@example.com',
-      userType: 'artist'
+      audience: 'artist',
     });
     expect(result.valid).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
 
-  it('should accept fan user type', () => {
+  it('should accept valid request with userType (backward compat)', () => {
     const result = validateWaitlistRequest({
       email: 'fan@example.com',
-      userType: 'fan'
+      userType: 'fan',
     });
     expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('should accept request with both audience and userType', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      audience: 'fan',
+      userType: 'artist',
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('should reject request with neither audience nor userType', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('audience or userType (artist or fan) is required');
+  });
+
+  it('should accept request with valid variant', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      audience: 'fan',
+      variant: 'a',
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('should reject variant longer than 1 character', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      audience: 'fan',
+      variant: 'ab',
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('variant must be a single character (a or b)');
+  });
+
+  it('should accept request with utm_source and utm_campaign', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      audience: 'artist',
+      utm_source: 'instagram',
+      utm_campaign: 'cold-outreach-v1',
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('should reject utm_source over 255 characters', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      audience: 'fan',
+      utm_source: 'x'.repeat(256),
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('utm_source must be at most 255 characters');
+  });
+
+  it('should reject utm_campaign over 255 characters', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      audience: 'fan',
+      utm_campaign: 'x'.repeat(256),
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('utm_campaign must be at most 255 characters');
   });
 
   it('should reject invalid email', () => {
     const result = validateWaitlistRequest({
       email: 'notvalid',
-      userType: 'artist'
+      audience: 'artist',
     });
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('Invalid email address');
@@ -52,34 +145,15 @@ describe('validateWaitlistRequest', () => {
   it('should reject missing email', () => {
     const result = validateWaitlistRequest({
       email: '',
-      userType: 'artist'
+      audience: 'artist',
     });
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('Email is required');
   });
 
-  it('should reject invalid user type', () => {
-    const result = validateWaitlistRequest({
-      email: 'test@example.com',
-      userType: 'manager' as 'artist' | 'fan'
-    });
-    expect(result.valid).toBe(false);
-    expect(result.errors).toContain('User type must be "artist" or "fan"');
-  });
-
-  it('should reject missing user type', () => {
-    const result = validateWaitlistRequest({
-      email: 'test@example.com',
-      userType: '' as 'artist' | 'fan'
-    });
-    expect(result.valid).toBe(false);
-    expect(result.errors).toContain('User type is required');
-  });
-
   it('should collect multiple errors', () => {
     const result = validateWaitlistRequest({
       email: '',
-      userType: '' as 'artist' | 'fan'
     });
     expect(result.valid).toBe(false);
     expect(result.errors.length).toBeGreaterThan(1);
