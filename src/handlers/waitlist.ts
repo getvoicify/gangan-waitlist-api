@@ -57,13 +57,16 @@ export async function handleWaitlistPost(
   const source = buildSource(request.utm_source, request.utm_campaign);
   const variant = request.variant || null;
   const utmSource = request.utm_source || null;
+  const utmMedium = request.utm_medium || null;
   const utmCampaign = request.utm_campaign || null;
+  const utmContent = request.utm_content || null;
+  const utmTerm = request.utm_term || null;
 
   try {
     await env.DB.prepare(
-      `INSERT INTO waitlist (email, user_type, ip_hash, source, variant, utm_source, utm_campaign)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(email, audience, ipHash, source, variant, utmSource, utmCampaign).run();
+      `INSERT INTO waitlist (email, user_type, ip_hash, source, variant, utm_source, utm_medium, utm_campaign, utm_content, utm_term)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(email, audience, ipHash, source, variant, utmSource, utmMedium, utmCampaign, utmContent, utmTerm).run();
 
     sendWaitlistConfirmation(env, email, audience).catch(err => {
       console.error('Resend confirmation failed:', err instanceof Error ? err.message : String(err));

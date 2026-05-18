@@ -51,6 +51,31 @@ describe('handleWaitlistPost', () => {
     vi.restoreAllMocks();
   });
 
+  it('should store all five UTM attribution fields in D1', async () => {
+    mockDb._mockRun.mockResolvedValue({ success: true });
+
+    await handleWaitlistPost(
+      {
+        email: 'fullutm@example.com',
+        audience: 'artist',
+        utm_source: 'meta',
+        utm_medium: 'cpc',
+        utm_campaign: 'launch_burst',
+        utm_content: 'variant_a',
+        utm_term: 'afrobeats',
+      },
+      mockEnv,
+      '10.0.0.1'
+    );
+
+    const bindCall = mockDb._mockBind.mock.calls[0];
+    expect(bindCall[5]).toBe('meta');
+    expect(bindCall[6]).toBe('cpc');
+    expect(bindCall[7]).toBe('launch_burst');
+    expect(bindCall[8]).toBe('variant_a');
+    expect(bindCall[9]).toBe('afrobeats');
+  });
+
   it('should return 201 for new signup with audience field', async () => {
     mockDb._mockRun.mockResolvedValue({ success: true });
     mockFetch.mockResolvedValue(new Response('{"id":"msg_1"}', { status: 200 }));
@@ -88,7 +113,10 @@ describe('handleWaitlistPost', () => {
     expect(bindCall[3]).toBe('instagram / cold-outreach-v1'); // source
     expect(bindCall[4]).toBe('b');                // variant
     expect(bindCall[5]).toBe('instagram');        // utm_source
-    expect(bindCall[6]).toBe('cold-outreach-v1'); // utm_campaign
+    expect(bindCall[6]).toBe(null);               // utm_medium
+    expect(bindCall[7]).toBe('cold-outreach-v1'); // utm_campaign
+    expect(bindCall[8]).toBe(null);               // utm_content
+    expect(bindCall[9]).toBe(null);               // utm_term
   });
 
   it('should set source to organic when no UTM params', async () => {

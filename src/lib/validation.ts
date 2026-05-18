@@ -57,6 +57,24 @@ export function validateWaitlistRequest(request: WaitlistRequest): ValidationRes
     }
   }
 
+  if (request.utm_medium !== undefined && request.utm_medium !== null) {
+    if (typeof request.utm_medium !== 'string' || request.utm_medium.length > 255) {
+      errors.push('utm_medium must be at most 255 characters');
+    }
+  }
+
+  if (request.utm_content !== undefined && request.utm_content !== null) {
+    if (typeof request.utm_content !== 'string' || request.utm_content.length > 255) {
+      errors.push('utm_content must be at most 255 characters');
+    }
+  }
+
+  if (request.utm_term !== undefined && request.utm_term !== null) {
+    if (typeof request.utm_term !== 'string' || request.utm_term.length > 255) {
+      errors.push('utm_term must be at most 255 characters');
+    }
+  }
+
   return {
     valid: errors.length === 0,
     errors,

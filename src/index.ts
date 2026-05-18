@@ -1,5 +1,6 @@
 import type { Env, WaitlistRequest, ApiResponse } from './types';
 import { handleWaitlistPost } from './handlers/waitlist';
+import { handleAttributionGet } from './handlers/attribution';
 import { checkRateLimit } from './lib/rate-limit';
 
 /**
@@ -11,7 +12,7 @@ function corsResponse(body: ApiResponse, status: number, allowedOrigin: string):
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': allowedOrigin,
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
@@ -25,7 +26,7 @@ function handleOptions(allowedOrigin: string): Response {
     status: 204,
     headers: {
       'Access-Control-Allow-Origin': allowedOrigin,
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Max-Age': '86400',
     },
@@ -38,7 +39,7 @@ function handleOptions(allowedOrigin: string): Response {
 function addCorsHeaders(response: Response, allowedOrigin: string): Response {
   const newHeaders = new Headers(response.headers);
   newHeaders.set('Access-Control-Allow-Origin', allowedOrigin);
-  newHeaders.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   newHeaders.set('Access-Control-Allow-Headers', 'Content-Type');
   
   return new Response(response.body, {
@@ -87,6 +88,37 @@ export default {
         success: true,
         message: 'OK',
       }, 200, allowedOrigin);
+    }
+
+    // Route: GET /waitlist/attribution?email=<email>
+    if (url.pathname === '/waitlist/attribution' && request.method === 'GET') {
+      const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+
+      if (!checkRateLimit(clientIp)) {
+        return corsResponse({
+          success: false,
+          message: 'Slow down for a moment, then try again.',
+        }, 429, allowedOrigin);
+      }
+
+      const email = url.searchParams.get('email');
+      if (!email || !email.includes('@')) {
+        return corsResponse({
+          success: false,
+          message: 'Missing or invalid email parameter',
+        }, 400, allowedOrigin);
+      }
+
+      try {
+        const response = await handleAttributionGet(email, env);
+        return addCorsHeaders(response, allowedOrigin);
+      } catch (err) {
+        console.error('Attribution route error:', err instanceof Error ? err.message : String(err));
+        return corsResponse({
+          success: false,
+          message: 'Something on our end. Try again in a minute.',
+        }, 500, allowedOrigin);
+      }
     }
 
     // 404 for everything else

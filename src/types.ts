@@ -16,7 +16,19 @@ export interface WaitlistEntry {
   source: string;
   variant: string | null;
   utm_source: string | null;
+  utm_medium: string | null;
   utm_campaign: string | null;
+  utm_content: string | null;
+  utm_term: string | null;
+}
+
+export interface AttributionResponse {
+  email: string;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  utm_term: string | null;
 }
 
 export interface WaitlistRequest {
@@ -25,7 +37,10 @@ export interface WaitlistRequest {
   audience?: 'artist' | 'fan';
   variant?: string;
   utm_source?: string;
+  utm_medium?: string;
   utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
 }
 
 export interface ApiResponse {

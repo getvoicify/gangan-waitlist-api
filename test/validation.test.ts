@@ -133,6 +133,49 @@ describe('validateWaitlistRequest', () => {
     expect(result.errors).toContain('utm_campaign must be at most 255 characters');
   });
 
+  it('should accept request with all five UTM params', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      audience: 'fan',
+      utm_source: 'meta',
+      utm_medium: 'cpc',
+      utm_campaign: 'launch_burst',
+      utm_content: 'variant_a',
+      utm_term: 'afrobeats',
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('should reject utm_medium over 255 characters', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      audience: 'fan',
+      utm_medium: 'x'.repeat(256),
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('utm_medium must be at most 255 characters');
+  });
+
+  it('should reject utm_content over 255 characters', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      audience: 'fan',
+      utm_content: 'x'.repeat(256),
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('utm_content must be at most 255 characters');
+  });
+
+  it('should reject utm_term over 255 characters', () => {
+    const result = validateWaitlistRequest({
+      email: 'test@example.com',
+      audience: 'fan',
+      utm_term: 'x'.repeat(256),
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('utm_term must be at most 255 characters');
+  });
+
   it('should reject invalid email', () => {
     const result = validateWaitlistRequest({
       email: 'notvalid',
