@@ -14,6 +14,9 @@ export interface ValidationResult {
   errors: string[];
 }
 
+const ISO8601_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+const COUNTRY_REGEX = /^[A-Z]{2}$/;
+
 export function validateWaitlistRequest(request: WaitlistRequest): ValidationResult {
   const errors: string[] = [];
 
@@ -29,6 +32,27 @@ export function validateWaitlistRequest(request: WaitlistRequest): ValidationRes
     errors.push('User type is required');
   } else if (!['artist', 'fan'].includes(request.userType)) {
     errors.push('User type must be "artist" or "fan"');
+  }
+
+  // Validate optional fields — all are optional; never error on missing
+  const UTM_FIELDS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as const;
+  for (const field of UTM_FIELDS) {
+    const val = request[field];
+    if (val !== undefined && val.length > 256) {
+      errors.push(`${field} must be 256 characters or fewer`);
+    }
+  }
+
+  if (request.referrer !== undefined && request.referrer.length > 1024) {
+    errors.push('referrer must be 1024 characters or fewer');
+  }
+
+  if (request.country !== undefined && !COUNTRY_REGEX.test(request.country)) {
+    errors.push('country must be a 2-letter ISO country code (A-Z)');
+  }
+
+  if (request.landed_at !== undefined && !ISO8601_REGEX.test(request.landed_at)) {
+    errors.push('landed_at must be an ISO-8601 UTC timestamp');
   }
 
   return {

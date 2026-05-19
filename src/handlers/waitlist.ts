@@ -45,10 +45,28 @@ export async function handleWaitlistPost(
   const userType = request.userType;
   const ipHash = clientIp ? await hashIp(clientIp) : null;
 
+  // Optional lead-capture v0.2 fields — all nullable
+  const utmSource = request.utm_source ?? null;
+  const utmMedium = request.utm_medium ?? null;
+  const utmCampaign = request.utm_campaign ?? null;
+  const utmContent = request.utm_content ?? null;
+  const utmTerm = request.utm_term ?? null;
+  const country = request.country ?? null;
+  const referrer = request.referrer ?? null;
+  const landedAt = request.landed_at ?? null;
+
   try {
     await db.prepare(
-      'INSERT INTO waitlist (email, user_type, ip_hash) VALUES (?, ?, ?)'
-    ).bind(email, userType, ipHash).run();
+      `INSERT INTO waitlist
+         (email, user_type, ip_hash,
+          utm_source, utm_medium, utm_campaign, utm_content, utm_term,
+          country, referrer, landed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      email, userType, ipHash,
+      utmSource, utmMedium, utmCampaign, utmContent, utmTerm,
+      country, referrer, landedAt,
+    ).run();
 
     return jsonResponse({
       success: true,
@@ -57,8 +75,8 @@ export async function handleWaitlistPost(
 
   } catch (err) {
     const error = err as Error;
-    
-    // Handle duplicate email (idempotent response)
+
+    // Duplicate email — first-touch attribution wins; do NOT update UTMs on re-submit.
     if (error.message.includes('UNIQUE constraint failed')) {
       return jsonResponse({
         success: true,

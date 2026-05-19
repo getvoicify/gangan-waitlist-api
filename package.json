@@ -9,8 +9,10 @@
     "test": "vitest",
     "test:run": "vitest run",
     "db:create": "wrangler d1 create gangan-waitlist",
-    "db:migrate": "wrangler d1 execute gangan-waitlist --file=./migrations/0001_init.sql",
-    "db:migrate:local": "wrangler d1 execute gangan-waitlist --local --file=./migrations/0001_init.sql"
+    "db:migrate": "wrangler d1 execute gangan-waitlist --file=./migrations/0002_lead_capture_v0_2.sql",
+    "db:migrate:local": "wrangler d1 execute gangan-waitlist --local --file=./migrations/0002_lead_capture_v0_2.sql",
+    "db:migrate:init": "wrangler d1 execute gangan-waitlist --file=./migrations/0001_init.sql",
+    "db:migrate:init:local": "wrangler d1 execute gangan-waitlist --local --file=./migrations/0001_init.sql"
   },
   "repository": {
     "type": "git",
